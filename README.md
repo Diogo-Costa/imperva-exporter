@@ -1,10 +1,28 @@
 # Imperva Exporter for Prometheus
 
-Simple server that scrapes `Imperva WAF` metrics endpoint and exports them as Prometheus metrics.
+Prometheus exporter for `Imperva WAF` metrics.
+Supports metrics fetching from all sites in your account with one scrape
 
-## Flags/Arguments
+## Metrics stats support
+
+- `visits_timeseries` Number of visits by type (Humans/Bots) over time.
+- `caching_timeseries` Number of requests and bytes that were cached by the Imperva network, with one day resolution, with info regarding the caching mode (standard or advanced).
+- `incap_rules_timeseries` List of security rules with a series of reported incidents for each rule with the specified granularity.
+
+Imperva WAF Api Documetation: https://docs.imperva.com/bundle/cloud-application-security/page/cloud-v1-api-definition.htm
+
+## TODO
+
+- [] Scraper all stats metrics in API "/api/stats/v1"
+- [] Add logLevel definition
+
+## Configuration
 
 ```sh
+Usage:
+  imperva_exporter.py
+
+Application Options:
   --imperva_endpoint string
         Imperva WAF Api Endpoint. (default -> "https://my.imperva.com")
   --account_id string
@@ -19,11 +37,22 @@ Simple server that scrapes `Imperva WAF` metrics endpoint and exports them as Pr
         Exporter Port expose. (default -> 8956)
 ```
 
-## Collectors
+## Usage
 
-The exporter collects the following metrics:
+### Option A) Python3 + PIP
 
-**Metrics:**
+```sh
+user@host: pip install -r /exporter/requirements.txt
+user@host: /exporter/imperva_exporter.py --account_id xxxx --api_key xxxxxx --api_id xxxxx --interval 60
+```
+
+### Option B) Docker
+
+```sh
+docker run --rm -it -p 8956:8956 ghcr.io/diogo-costa/imperva-exporter:latest /app/imperva_exporter.py --account_id xxxx --api_key xxxxxx --api_id xxxxx --interval 60
+```
+
+## Metrics
 
 ```sh
 # HELP incap_visits_humans_timeseries Number of visits by type (Humans) over time.
@@ -46,13 +75,6 @@ incap_caching_hits_advanced_timeseries{api_id="api.stats.caching_timeseries.byte
 # TYPE incap_rules_timeseries gauge
 incap_rules_timeseries{action="Alert",name="rateLimitSiteGeneral",site_name="xxx.xxx.xxx"} xx
 ...
-```
-
-## Building and running
-
-```sh
-docker build -t imperva-exporter .
-docker run --rm -it -p 8956:8956 imperva-exporter --account_id xxxxx --api_key xxxxx --api_id xxxxx --interval 60
 ```
 
 ## Contribute

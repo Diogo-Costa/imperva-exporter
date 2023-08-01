@@ -6,7 +6,7 @@ import time
 import json
 import argparse
 
-parser = argparse.ArgumentParser(description='Description')
+parser = argparse.ArgumentParser(description='Prometheus exporter for `Imperva WAF` metrics')
 parser.add_argument("--imperva_endpoint", help="Imperva WAF Api Endpoint", default="https://my.imperva.com")
 parser.add_argument("--account_id", help="Imperva WAF Account ID")
 parser.add_argument('--interval', type=int, metavar='N', default=300, help='check last N seconds, default: 300')
