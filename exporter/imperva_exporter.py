@@ -53,7 +53,7 @@ def get_imperva_metrics(site_id):
             metrics_dict = response.json()
             return metrics_dict
         except Exception as e:
-            print("Unexpected error: ", e)
+            print("Unexpected error in get_imperva_metrics: ", e)
 
 
 def get_sites_id():
@@ -68,23 +68,28 @@ def get_sites_id():
             sites_dict = response.json()
             return sites_dict
         except Exception as e:
-            print("Unexpected error: ", e)
+            print("Unexpected error in --account_id 1989352 --api_key 05061a57-5b70-45f0-864d-2fffe8411a28 --api_id 60200: ", e)
 
 
 if __name__ == "__main__":
     try:
         start_http_server(args.port)
-        print("[ " + str(datetime.now()) + " ] Starting HTTP Server ")
+        print("[ " + str(datetime.now()) + " ] Starting HTTP Server in :" + str(args.port))
         sites_dict = get_sites_id()
         while True:
             for site in sites_dict["sites"]:
                 print(site["domain"] +" "+ str(site["site_id"]))
                 metrics_dict = get_imperva_metrics(str(site["site_id"]))
-            ## Generate prometheus metrics
-                prom['incap_visits_humans_timeseries'].labels(site_name=site["domain"],api_id=metrics_dict["visits_timeseries"][0]["id"],name=metrics_dict["visits_timeseries"][0]["name"]).set(metrics_dict["visits_timeseries"][0]["data"][-1][-1])
-                prom['incap_visits_bots_timeseries'].labels(site_name=site["domain"],api_id=metrics_dict["visits_timeseries"][1]["id"],name=metrics_dict["visits_timeseries"][1]["name"]).set(metrics_dict["visits_timeseries"][1]["data"][-1][-1])
-                prom['incap_caching_hits_standard_timeseries'].labels(site_name=site["domain"],api_id=metrics_dict["caching_timeseries"][0]["id"],name=metrics_dict["caching_timeseries"][0]["name"]).set(metrics_dict["caching_timeseries"][0]["data"][-1][-1])
-                prom['incap_caching_hits_advanced_timeseries'].labels(site_name=site["domain"],api_id=metrics_dict["caching_timeseries"][1]["id"],name=metrics_dict["caching_timeseries"][1]["name"]).set(metrics_dict["caching_timeseries"][1]["data"][-1][-1])
+                print(metrics_dict)
+                ## Generate prometheus metrics for visits_timeseries
+                if metrics_dict["visits_timeseries"][0]["data"] != []:
+                    prom['incap_visits_humans_timeseries'].labels(site_name=site["domain"],api_id=metrics_dict["visits_timeseries"][0]["id"],name=metrics_dict["visits_timeseries"][0]["name"]).set(metrics_dict["visits_timeseries"][0]["data"][-1][-1])
+                if metrics_dict["visits_timeseries"][1]["data"] != []:
+                    prom['incap_visits_bots_timeseries'].labels(site_name=site["domain"],api_id=metrics_dict["visits_timeseries"][1]["id"],name=metrics_dict["visits_timeseries"][1]["name"]).set(metrics_dict["visits_timeseries"][1]["data"][-1][-1])
+                if metrics_dict["caching_timeseries"][0]["data"] != []:
+                    prom['incap_caching_hits_standard_timeseries'].labels(site_name=site["domain"],api_id=metrics_dict["caching_timeseries"][0]["id"],name=metrics_dict["caching_timeseries"][0]["name"]).set(metrics_dict["caching_timeseries"][0]["data"][-1][-1])
+                if metrics_dict["caching_timeseries"][1]["data"] != []:
+                    prom['incap_caching_hits_advanced_timeseries'].labels(site_name=site["domain"],api_id=metrics_dict["caching_timeseries"][1]["id"],name=metrics_dict["caching_timeseries"][1]["name"]).set(metrics_dict["caching_timeseries"][1]["data"][-1][-1])
                 if metrics_dict["incap_rules_timeseries"] != []:
                     prom['incap_rules_timeseries'].labels(site_name=site["domain"],action=metrics_dict["incap_rules_timeseries"][0]["action"],name=metrics_dict["incap_rules_timeseries"][0]["name"]).set(metrics_dict["incap_rules_timeseries"][0]["incidents"][-1][-1])
 

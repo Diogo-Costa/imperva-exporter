@@ -7,4 +7,4 @@ RUN pip install -r requirements.txt
 
 RUN chmod u+x imperva_exporter.py
 
-ENTRYPOINT ["/app/imperva_exporter.py"]
+CMD ["/app/imperva_exporter.py"]
