@@ -68,7 +68,7 @@ def get_sites_id():
             sites_dict = response.json()
             return sites_dict
         except Exception as e:
-            print("Unexpected error in --account_id 1989352 --api_key 05061a57-5b70-45f0-864d-2fffe8411a28 --api_id 60200: ", e)
+            print("Unexpected error: ", e)
 
 
 if __name__ == "__main__":
