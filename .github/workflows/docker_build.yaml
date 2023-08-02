@@ -40,6 +40,5 @@ jobs:
 
       - name: Build Inventory Image
         run: |
-          docker build . --tag ghcr.io/diogo-costa/imperva-exporter:latest
-          docker push ghcr.io/diogo-costa/imperva-exporter:latest
-          docker push ghcr.io/diogo-costa/imperva-exporter:${{ steps.bump.outputs.new_tag }}
+          docker build . --tag ghcr.io/diogo-costa/imperva-exporter:latest --tag ghcr.io/diogo-costa/imperva-exporter:${{ steps.bump.outputs.new_tag }}
+          docker push ghcr.io/diogo-costa/imperva-exporter --all-tags
