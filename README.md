@@ -3,7 +3,7 @@
 Prometheus exporter for `Imperva WAF` metrics.
 Supports metrics fetching from all sites in your account with one scrape
 
-## Metrics stats support
+## Metrics supported
 
 - `visits_timeseries` Number of visits by type (Humans/Bots) over time.
 - `caching_timeseries` Number of requests and bytes that were cached by the Imperva network, with one day resolution, with info regarding the caching mode (standard or advanced).
