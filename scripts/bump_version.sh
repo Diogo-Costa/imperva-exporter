@@ -19,7 +19,7 @@ TAG=$(git tag |grep "v*" |sort -V |tail -n 1)
 echo "Last Version: $TAG"
 
 # Remove prefix from semantic version field
-VERSION=`echo ${TAG} |awk -F-v '{print \$2}'`
+VERSION=`echo ${TAG} |awk -F-v '{print \$1}'`
 LAST_TAG=$TAG
 
 # if there are none, start tags at v0.0.0
