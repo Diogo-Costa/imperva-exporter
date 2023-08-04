@@ -57,6 +57,7 @@ esac
 
 # Push new tag
 NEW_TAG="v$VERSION"
+
 # Debug
 echo "New VERSION: v$VERSION"
 MESSAGE="New TAG v$VERSION"
