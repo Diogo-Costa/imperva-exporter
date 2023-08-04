@@ -56,18 +56,15 @@ case "$LOG" in
 esac
 
 # Push new tag
-NEW_TAG="v$VERSION"
-
-# Debug
 echo "New VERSION: $VERSION"
 MESSAGE="New TAG $VERSION"
 git config user.name "Diogo-Costa"
 git config user.email "Diogo-Costa@users.noreply.github.com"
-git tag -a "${NEW_TAG}" -m "${MESSAGE}" || error_exit "Failed to create the tag"
-git push origin "${NEW_TAG}" || error_exit "Failed to push the tag"
+git tag -a "${VERSION}" -m "${MESSAGE}" || error_exit "Failed to create the tag"
+git push origin "${VERSION}" || error_exit "Failed to push the tag"
 
 # Update tags
 git fetch --tags
 
 # Set outputs for used in Github Actions
-echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+echo "new_tag=$VERSION" >> $GITHUB_OUTPUT
