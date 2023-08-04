@@ -59,8 +59,8 @@ esac
 NEW_TAG="v$VERSION"
 
 # Debug
-echo "New VERSION: v$VERSION"
-MESSAGE="New TAG v$VERSION"
+echo "New VERSION: $VERSION"
+MESSAGE="New TAG $VERSION"
 git config user.name "Diogo-Costa"
 git config user.email "Diogo-Costa@users.noreply.github.com"
 git tag -a "${NEW_TAG}" -m "${MESSAGE}" || error_exit "Failed to create the tag"
