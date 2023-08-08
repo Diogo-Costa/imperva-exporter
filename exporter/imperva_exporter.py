@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from prometheus_client import start_http_server, generate_latest, Gauge, Counter
 from datetime import date, datetime, timedelta
+from termcolor import colored
 import requests
 import time
 import json
@@ -15,6 +16,7 @@ parser.add_argument('--granularity', type=int, metavar='N', default=600, help='c
 parser.add_argument("--api_key", help="ApiKey to connect imperva api metrics", default="")
 parser.add_argument("--api_id", help="ApiId to connect imperva api metrics")
 parser.add_argument("--port", type=int, help="Exporter Port expose", default=8956)
+parser.add_argument("--log_level", help="Exporter Log Level", default='info')
 args = parser.parse_args()
 
 ENDPOINT = args.imperva_endpoint
@@ -40,6 +42,18 @@ prom = {
         ['site_name', 'name', 'rule_id']),
     'incap_visits_summary': Gauge('incap_visits_summary', 'Total number of visits per client application and country.',
         ['site_name', 'name', 'id', "country", "app_type"]),
+    'incap_hits_humans_timeseries': Gauge('incap_hits_humans_timeseries', 'Number of hits by type (Humans) over time.',
+        ['site_name', 'api_id', 'name']),
+    'incap_hits_bots_timeseries': Gauge('incap_hits_bots_timeseries', 'Number of hits by type (Bots) over time.',
+        ['site_name', 'api_id', 'name']),
+    'incap_hits_blocked_timeseries': Gauge('incap_hits_blocked_timeseries', 'Number of hits by type (Blocked) over time.',
+        ['site_name', 'api_id', 'name']),
+    'incap_hits_humans_ps': Gauge('incap_hits_humans_ps', 'Number of hits by type (Humans) per second.',
+        ['site_name', 'api_id', 'name']),
+    'incap_hits_bot_ps': Gauge('incap_hits_bot_ps', 'Number of hits by type (Bots) per second.',
+        ['site_name', 'api_id', 'name']),
+    'incap_hits_blocked_ps': Gauge('incap_hits_blocked_ps', 'Number of hits by type (Bots) per second.',
+        ['site_name', 'api_id', 'name']),
 }
 
 
@@ -51,7 +65,7 @@ def get_imperva_metrics(site_id):
                 'account_id': ACCOUNT_ID,
                 'time_range': 'today',
                 'site_id': site_id,
-                'stats': 'visits_timeseries,caching_timeseries,incap_rules_timeseries,threats,visits_dist_summary',
+                'stats': 'visits_timeseries,hits_timeseries,caching_timeseries,incap_rules_timeseries,threats,visits_dist_summary',
                 'granularity': int(args.granularity * 1000)
             }, headers=HEADERS)
             if not response.ok:
@@ -59,7 +73,7 @@ def get_imperva_metrics(site_id):
             metrics_dict = response.json()
             return metrics_dict
         except Exception as e:
-            print("Unexpected error in get_imperva_metrics: ", e)
+            print(colored("Unexpected error in function get_imperva_metrics: ", "red"), e)
 
 
 def get_sites_id():
@@ -74,7 +88,7 @@ def get_sites_id():
             sites_dict = response.json()
             return sites_dict
         except Exception as e:
-            print("Unexpected error: ", e)
+            print(colored("Unexpected error in function get_sites_id: ", "red"), e)
 
 
 if __name__ == "__main__":
@@ -86,38 +100,111 @@ if __name__ == "__main__":
             for site in sites_dict["sites"]:
                 print(site["domain"] +" "+ str(site["site_id"]))
                 metrics_dict = get_imperva_metrics(str(site["site_id"]))
-                print(metrics_dict)
-                ## Generate prometheus metrics for visits_timeseries
-                if metrics_dict["visits_timeseries"][0]["data"] != []:
+
+                # Debug
+                if args.log_level == 'debug':
+                    print("[ " + str(datetime.now()) + " ] DEBUG: ", metrics_dict)
+
+                ## Generate prometheus metrics
+                if (metrics_dict["visits_timeseries"][0]["data"] != []) and (metrics_dict["visits_timeseries"][0]["id"] == 'api.stats.visits_timeseries.human'):
                     prom['incap_visits_humans_timeseries'].labels(
                         site_name=site["domain"],
                         api_id=metrics_dict["visits_timeseries"][0]["id"],
                         name=metrics_dict["visits_timeseries"][0]["name"]
-                    ).set(metrics_dict["visits_timeseries"][0]["data"][-1][-1])
-                if metrics_dict["visits_timeseries"][1]["data"] != []:
+                    ).set(metrics_dict["visits_timeseries"][0]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.visits_timeseries.human", "yellow"))
+
+                if (metrics_dict["visits_timeseries"][1]["data"] != []) and (metrics_dict["visits_timeseries"][1]["id"] == 'api.stats.visits_timeseries.bot'):
                     prom['incap_visits_bots_timeseries'].labels(
                         site_name=site["domain"],
                         api_id=metrics_dict["visits_timeseries"][1]["id"],
                         name=metrics_dict["visits_timeseries"][1]["name"]
-                    ).set(metrics_dict["visits_timeseries"][1]["data"][-1][-1])
-                if metrics_dict["caching_timeseries"][0]["data"] != []:
+                    ).set(metrics_dict["visits_timeseries"][1]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.visits_timeseries.bot", "yellow"))
+
+                if (metrics_dict["hits_timeseries"][0]["data"] != []) and (metrics_dict["hits_timeseries"][0]["id"] == 'api.stats.hits_timeseries.human') :
+                    prom['incap_hits_humans_timeseries'].labels(
+                        site_name=site["domain"],
+                        api_id=metrics_dict["hits_timeseries"][0]["id"],
+                        name=metrics_dict["hits_timeseries"][0]["name"]
+                    ).set(metrics_dict["hits_timeseries"][0]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.hits_timeseries.human", "yellow"))
+
+                if (metrics_dict["hits_timeseries"][1]["data"] != []) and (metrics_dict["hits_timeseries"][1]["id"] == 'api.stats.hits_timeseries.human_ps') :
+                    prom['incap_hits_humans_ps'].labels(
+                        site_name=site["domain"],
+                        api_id=metrics_dict["hits_timeseries"][1]["id"],
+                        name=metrics_dict["hits_timeseries"][1]["name"]
+                    ).set(metrics_dict["hits_timeseries"][1]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.hits_timeseries.human_ps", "yellow"))
+
+                if (metrics_dict["hits_timeseries"][2]["data"] != []) and (metrics_dict["hits_timeseries"][2]["id"] == 'api.stats.hits_timeseries.bot') :
+                    prom['incap_hits_bots_timeseries'].labels(
+                        site_name=site["domain"],
+                        api_id=metrics_dict["hits_timeseries"][2]["id"],
+                        name=metrics_dict["hits_timeseries"][2]["name"]
+                    ).set(metrics_dict["hits_timeseries"][2]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.hits_timeseries.bot", "yellow"))
+
+                if (metrics_dict["hits_timeseries"][3]["data"] != []) and (metrics_dict["hits_timeseries"][3]["id"] == 'api.stats.hits_timeseries.bot_ps') :
+                    prom['incap_hits_bot_ps'].labels(
+                        site_name=site["domain"],
+                        api_id=metrics_dict["hits_timeseries"][3]["id"],
+                        name=metrics_dict["hits_timeseries"][3]["name"]
+                    ).set(metrics_dict["hits_timeseries"][3]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.hits_timeseries.bot_ps", "yellow"))
+
+                if (metrics_dict["hits_timeseries"][4]["data"] != []) and (metrics_dict["hits_timeseries"][4]["id"] == 'api.stats.hits_timeseries.blocked') :
+                    prom['incap_hits_blocked_timeseries'].labels(
+                        site_name=site["domain"],
+                        api_id=metrics_dict["hits_timeseries"][4]["id"],
+                        name=metrics_dict["hits_timeseries"][4]["name"]
+                    ).set(metrics_dict["hits_timeseries"][4]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.hits_timeseries.blocked", "yellow"))
+
+                if (metrics_dict["hits_timeseries"][5]["data"] != []) and (metrics_dict["hits_timeseries"][5]["id"] == 'api.stats.hits_timeseries.blocked_ps') :
+                    prom['incap_hits_blocked_ps'].labels(
+                        site_name=site["domain"],
+                        api_id=metrics_dict["hits_timeseries"][5]["id"],
+                        name=metrics_dict["hits_timeseries"][5]["name"]
+                    ).set(metrics_dict["hits_timeseries"][5]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.hits_timeseries.blocked_ps", "yellow"))
+
+                if (metrics_dict["caching_timeseries"][0]["data"] != []) and (metrics_dict["caching_timeseries"][0]["id"] == 'api.stats.caching_timeseries.hits.standard') :
                     prom['incap_caching_hits_standard_timeseries'].labels(
                         site_name=site["domain"],
                         api_id=metrics_dict["caching_timeseries"][0]["id"],
                         name=metrics_dict["caching_timeseries"][0]["name"]
-                    ).set(metrics_dict["caching_timeseries"][0]["data"][-1][-1])
-                if metrics_dict["caching_timeseries"][1]["data"] != []:
+                    ).set(metrics_dict["caching_timeseries"][0]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.caching_timeseries.hits.standard", "yellow"))
+
+                if (metrics_dict["caching_timeseries"][2]["data"] != []) and (metrics_dict["caching_timeseries"][0]["id"] == 'api.stats.caching_timeseries.hits.advanced') :
                     prom['incap_caching_hits_advanced_timeseries'].labels(
                         site_name=site["domain"],
-                        api_id=metrics_dict["caching_timeseries"][1]["id"],
-                        name=metrics_dict["caching_timeseries"][1]["name"]
-                    ).set(metrics_dict["caching_timeseries"][1]["data"][-1][-1])
+                        api_id=metrics_dict["caching_timeseries"][2]["id"],
+                        name=metrics_dict["caching_timeseries"][2]["name"]
+                    ).set(metrics_dict["caching_timeseries"][2]["data"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.caching_timeseries.hits.advanced", "yellow"))
+
                 if metrics_dict["incap_rules_timeseries"] != []:
                     prom['incap_rules_timeseries'].labels(
                         site_name=site["domain"],
                         action=metrics_dict["incap_rules_timeseries"][0]["action"],
                         name=metrics_dict["incap_rules_timeseries"][0]["name"]
-                    ).set(metrics_dict["incap_rules_timeseries"][0]["incidents"][-1][-1])
+                    ).set(metrics_dict["incap_rules_timeseries"][0]["incidents"][-2][-1])
+                else:
+                    print(colored("Metrics not fount in: incap_rules_timeseries", "yellow"))
+
                 if metrics_dict["threats"] != []:
                     for threats_incidents in metrics_dict["threats"]:
                         prom['incap_threats_incidents'].labels(
@@ -125,7 +212,10 @@ if __name__ == "__main__":
                             rule_id=threats_incidents["id"],
                             name=threats_incidents["name"]
                         ).set(threats_incidents["incidents"])
-                if metrics_dict["visits_dist_summary"][0]["data"] != []:
+                else:
+                    print(colored("Metrics not fount in: incap_visits_humans_timeseries", "yellow"))
+
+                if (metrics_dict["visits_dist_summary"][0]["data"] != []) and (metrics_dict["visits_dist_summary"][0]["id"] == 'api.stats.visits_dist_summary.country') :
                     for country in metrics_dict["visits_dist_summary"][0]["data"]:
                         prom['incap_visits_summary'].labels(
                             site_name=site["domain"],
@@ -134,7 +224,10 @@ if __name__ == "__main__":
                             app_type="null",
                             name=metrics_dict["visits_dist_summary"][0]["name"]
                         ).set(country[1])
-                if metrics_dict["visits_dist_summary"][1]["data"] != []:
+                else:
+                    print(colored("Metrics not fount in: api.stats.visits_dist_summary.country", "yellow"))
+
+                if (metrics_dict["visits_dist_summary"][1]["data"] != []) and (metrics_dict["visits_dist_summary"][1]["id"] == 'api.stats.visits_dist_summary.client_app') :
                     for country in metrics_dict["visits_dist_summary"][1]["data"]:
                         prom['incap_visits_summary'].labels(
                             site_name=site["domain"],
@@ -143,8 +236,11 @@ if __name__ == "__main__":
                             app_type=country[0],
                             name=metrics_dict["visits_dist_summary"][1]["name"]
                         ).set(country[1])
+                else:
+                    print(colored("Metrics not fount in: api.stats.visits_dist_summary.client_app", "yellow"))
 
+            print("[ " + str(datetime.now()) + " ] Finish Loop! Starting next loop in: " + str(args.interval))
             time.sleep(args.interval)
     except Exception as e:
-        print("[ " + str(datetime.now()) + " ] Unexpected error: ", e)
+        print(colored("[ " + str(datetime.now()) + " ] Unexpected error in scraper metrics: ", "red"), e)
         raise e

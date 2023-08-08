@@ -13,7 +13,9 @@ Imperva WAF Api Documetation: https://docs.imperva.com/bundle/cloud-application-
 
 ## TODO
 
-- [] Scraper all stats metrics in API "/api/stats/v1"
+- [x] Scraper all stats metrics in API "/api/stats/v1"
+- [] Define timezone to GMT
+- [] Change get metrics to get last but one
 - [] Add logLevel definition
 
 ## Configuration
